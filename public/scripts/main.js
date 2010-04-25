@@ -145,49 +145,23 @@ function new_component(behavior, posx, posy, options){
   $(body.node).mouseleave(function(){
     component.attr({stroke: "#CCC"});
   });
-  
-  // Create a rubber band line from this point to the start point
-	var rubberBand = function(from_x, from_y, to_x, to_y) {
-	  var rubber_x = 0, rubber_y = 0;
-	  var rubber_band = paper.path("M0 0").attr({stroke: "#000", "stroke-width": 2});
-	  rubber_band.dragUpdate = function(draggingOver, dx, dy, event) {
-	    rubber_x += dx; rubber_y += dy;
-	    rubber_band.attr({path: "M"+from_x+" "+from_y+"L"+rubber_x+" "+rubber_y});
-	  };
-	  rubber_band.dragUpdate(null, to_x, to_y);
-	  rubber_band.dragFinish = function(dropped_on, x, y, event) {
-	    if (dropped_on){
-	      alert("Dropped on "+(dropped_on.raphael ? dropped_on.raphael.name : dropped_on.tagName));
-	      if (dropped_on.raphael){
-	        alert("connected.");
-	        connections.push(paper.connection(or1, dropped_on, "#000"));
-	      }
-	    }
-	    rubber_band.dragCancel();
-	  };
-	  rubber_band.dragCancel = function() {
-	    rubber_band.remove();
-	  };
-	  return rubber_band;
-	};
 
+
+  var drag_point;
+  
 	input1.draggable();
 	input1.dragStart = function(x, y, start_event, event) {
-	  // start_event is the original mousedown, not the current move
-	  if (event.metaKey) return null;	// Don't start the drag until the metaKey is lifted
-	  if (event.shiftKey) return this;	// A shift-drag moves the handle instead of rubber banding
-
-	  var rubber_band = rubberBand((x), (y), x, y);
-	  rubber_band.toBack();	// Drag behind other objects
+	  drag_point = paper.circle(x, y, 2);
+	  dragging = true;
+    connections.push(paper.connection(input1, drag_point, "#888"));
 	  return input1;
 	};
 	input1.dragUpdate = function(draggingOver, dx, dy, event) {
-    paper.connection(connections[i]);
-    
-    rubber_x += dx; rubber_y += dy;
-    rubber_band.attr({path: "M"+from_x+" "+from_y+"L"+rubber_x+" "+rubber_y});
+    drag_point.translate(dx, dy);
   };
 	input1.dragFinish = function(dropped_on, x, y, event) {
+	  connections.pop().line.remove();
+	  drag_point.hide();
     if (dropped_on&&dropped_on.raphael){
       connections.push(paper.connection(input1, dropped_on, "#000"));
     }
@@ -199,21 +173,17 @@ function new_component(behavior, posx, posy, options){
 	
 	input2.draggable();
 	input2.dragStart = function(x, y, start_event, event) {
-	  // start_event is the original mousedown, not the current move
-	  if (event.metaKey) return null;	// Don't start the drag until the metaKey is lifted
-	  if (event.shiftKey) return this;	// A shift-drag moves the handle instead of rubber banding
-
-	  var rubber_band = rubberBand((x), (y), x, y);
-	  rubber_band.toBack();	// Drag behind other objects
+	  drag_point = paper.circle(x, y, 2);
+	  dragging = true;
+    connections.push(paper.connection(input2, drag_point, "#888"));
 	  return input2;
 	};
 	input2.dragUpdate = function(draggingOver, dx, dy, event) {
-    paper.connection(connections[i]);
-    
-    rubber_x += dx; rubber_y += dy;
-    rubber_band.attr({path: "M"+from_x+" "+from_y+"L"+rubber_x+" "+rubber_y});
+    drag_point.translate(dx, dy);
   };
 	input2.dragFinish = function(dropped_on, x, y, event) {
+	  connections.pop().line.remove();
+	  drag_point.hide();
     if (dropped_on&&dropped_on.raphael){
       connections.push(paper.connection(input2, dropped_on, "#000"));
     }
@@ -224,21 +194,17 @@ function new_component(behavior, posx, posy, options){
 	
 	output1.draggable();
 	output1.dragStart = function(x, y, start_event, event) {
-	  // start_event is the original mousedown, not the current move
-	  if (event.metaKey) return null;	// Don't start the drag until the metaKey is lifted
-	  if (event.shiftKey) return this;	// A shift-drag moves the handle instead of rubber banding
-
-	  var rubber_band = rubberBand((x), (y), x, y);
-	  rubber_band.toBack();	// Drag behind other objects
+	  drag_point = paper.circle(x, y, 2);
+	  dragging = true;
+    connections.push(paper.connection(output1, drag_point, "#888"));
 	  return output1;
 	};
 	output1.dragUpdate = function(draggingOver, dx, dy, event) {
-    paper.connection(connections[i]);
-    
-    rubber_x += dx; rubber_y += dy;
-    rubber_band.attr({path: "M"+from_x+" "+from_y+"L"+rubber_x+" "+rubber_y});
+    drag_point.translate(dx, dy);
   };
 	output1.dragFinish = function(dropped_on, x, y, event) {
+	  connections.pop().line.remove();
+	  drag_point.hide();
     if (dropped_on&&dropped_on.raphael){
       connections.push(paper.connection(output1, dropped_on, "#000"));
     }
@@ -246,7 +212,6 @@ function new_component(behavior, posx, posy, options){
 	//$(output1.node).bind('click', function(e) { alert("output1 clicked!"); });
 	output1.name = "output1";
 	output1.node.name = "output1.node";
-  
   
   return component;
 }
