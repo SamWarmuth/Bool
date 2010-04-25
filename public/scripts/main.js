@@ -58,7 +58,7 @@ Raphael.fn.connection = function (obj1, obj2, line, bg) {
 
 
 
-var paper = new Raphael(document.getElementById('main'), '100%', 500);
+var paper = new Raphael(document.getElementById('main'), '765px', '500px');
 
 window.onload = function() { 
   connections = [];
@@ -71,25 +71,27 @@ window.onload = function() {
           }
       }
   };
-  document.onmouseup = function () {
-      dragging = false;
-  };
+  document.onmouseup = function () {dragging = false;};
   
-  var or = new_behavior("or", "blue");
-  var and = new_behavior("and", "red");
-  var rect = new_behavior("rect", "green");
+  var not = new_behavior("not", "purple", 1);
+  var and = new_behavior("and", "red", 2);
+  var or = new_behavior("or", "blue", 2);
+  var rect = new_behavior("rect", "green", 3);
+  components = [];
+  for (var i = 0; i < 20; i++) {
+    components.push(new_component(not, 35, 50), 
+      new_component(and, 35, 150), 
+      new_component(or, 35, 250),
+      new_component(rect, 35, 350)
+      );
+  }
   
-  or1 = new_component(or, 50, 50);
-  and1 = new_component(and, 50, 200);
-  or2 =new_component(or, 50, 350);
   
-  rect1 = new_component(rect, 150, 125);
-  and2 = new_component(and, 150, 275);
-  
-  rect2 = new_component(rect, 250, 200);
-  
-  var status = paper.circle(5, 5, 5);
-  status.attr({fill: "#0F0", stroke: "#3F3"})
+  paper.rect(0, 0, 110, 500).attr({fill: "#EEE", stroke: "#DDD"}).toBack(); //component bg
+  paper.rect(120, 0, 30, 500).attr({fill: "#38F", stroke: "#38F"}).toBack(); // input bar
+  paper.text(135, 225, "INPUT").rotate(90).attr({"font-size": "28"});
+  paper.rect(725, 0, 30, 500).attr({fill: "#F83", stroke: "#F83"}).toBack(); // input bar
+  paper.text(740, 225, "OUTPUT").rotate(90).attr({"font-size": "28"});
 }
 
 function new_component(behavior, posx, posy, options){
@@ -107,7 +109,15 @@ function new_component(behavior, posx, posy, options){
       " L " + (posx-7)  +" "+ (posy+60) + 
       " S " + (posx+10) +" "+ (posy+30) +" "+ (posx-7)  +" "+ (posy)
     );
-  }else if (behavior.shape == "rect"){
+  }else if (behavior.shape == "not"){
+    var component = paper.set();
+    var body = paper.path(
+      " M " + (posx)  +" "+  posy + 
+      " L " + (posx+40) +" "+ (posy+30) +
+      " L " + (posx)  +" "+ (posy+60) + 
+      " L " + (posx)  +" "+ posy 
+    );  
+  }else { // if you want this, use "rect"
     var body = paper.path(
       " M " + posx +" "+ posy +
       " L " + (posx+38) +" "+ posy +
@@ -118,18 +128,52 @@ function new_component(behavior, posx, posy, options){
   }
   body.node.style.cursor = "move";
   var input = paper.set();
-  var input1 = paper.path("M "+ posx +" "+ (posy+20) +" L "+ (posx-20)+" "+ (posy+20));
-  var input2 = paper.path("M "+posx +" "+ (posy+40)+ " L "+ (posx-20) +" "+ (posy+40));
-  input.push(input1, input2);
+  var cur_input;
+  var drag_point;
+  var pin_attr = {stroke: "#CCC", "stroke-width": 5};
+  
+  for(var i = 0; i < behavior.inputs; i++ ){
+    cur_input = null;
+    cur_input = paper.path("M "+ posx +" "+ (posy+30+20*i-(behavior.inputs-1)*10) +" L "+ (posx-20)+" "+ (posy+30+20*i-(behavior.inputs-1)*10));
+    input.push(cur_input);
+    cur_input.draggable();
+  	cur_input.dragStart = function(x, y, start_event, event) {
+  	  drag_point = paper.circle(x, y, 2);
+  	  dragging = true;
+      connections.push(paper.connection(this, drag_point, "#888"));
+  	  return this;
+  	};
+  	cur_input.dragUpdate = function(draggingOver, dx, dy, event) {
+      drag_point.translate(dx, dy);
+    };
+  	cur_input.dragFinish = function(dropped_on, x, y, event) {
+  	  connections.pop().line.remove();
+  	  drag_point.hide();
+      if (dropped_on&&dropped_on.raphael){
+        connections.push(paper.connection(this, dropped_on, "#000"));
+      }
+    };
+    
+    
+    cur_input.hover(function (event) {
+        this.attr({stroke: "#99F"});
+    }, function (event) {
+        this.attr(pin_attr);
+    });
+
+    
+    cur_input.name = "input"+i;
+    cur_input.node.name = "input"+i+".node";
+    cur_input.attr(pin_attr);
+  }
+
   var output = paper.set();
   var output1 = paper.path("M " + (posx+38) +" "+ (posy+30) +" L "+ (posx+60) +" "+ (posy+30));
   output.push(output1);
   component.push( body, input, output);
   
   body.attr({fill: behavior.color, stroke:"#CCC"});
-  var pin_attr = {stroke: "#CCC", "stroke-width": 5};
   
-  input.attr(pin_attr);
   output.attr(pin_attr);
   
   body.draggable();
@@ -137,60 +181,20 @@ function new_component(behavior, posx, posy, options){
     dragging = true;
     return component; 
   };
-  
-  $(body.node).mouseenter(function(){
-    component.toFront();
-    component.attr({stroke: "#888"});
+  body.hover(function (event) {
+      component.attr({stroke: "#999"});
+  }, function (event) {
+      component.attr({fill: behavior.color, stroke:"#CCC"});
   });
-  $(body.node).mouseleave(function(){
-    component.attr({stroke: "#CCC"});
+  
+  output1.hover(function (event) {
+      output1.attr({stroke: "#99F"});
+  }, function (event) {
+      output1.attr(pin_attr);
   });
 
 
-  var drag_point;
   
-	input1.draggable();
-	input1.dragStart = function(x, y, start_event, event) {
-	  drag_point = paper.circle(x, y, 2);
-	  dragging = true;
-    connections.push(paper.connection(input1, drag_point, "#888"));
-	  return input1;
-	};
-	input1.dragUpdate = function(draggingOver, dx, dy, event) {
-    drag_point.translate(dx, dy);
-  };
-	input1.dragFinish = function(dropped_on, x, y, event) {
-	  connections.pop().line.remove();
-	  drag_point.hide();
-    if (dropped_on&&dropped_on.raphael){
-      connections.push(paper.connection(input1, dropped_on, "#000"));
-    }
-  };
-	//$(input1.node).bind('click', function(e) { alert("input1 clicked!"); });
-	input1.name = "input1";
-	input1.node.name = "input1.node";
-	
-	
-	input2.draggable();
-	input2.dragStart = function(x, y, start_event, event) {
-	  drag_point = paper.circle(x, y, 2);
-	  dragging = true;
-    connections.push(paper.connection(input2, drag_point, "#888"));
-	  return input2;
-	};
-	input2.dragUpdate = function(draggingOver, dx, dy, event) {
-    drag_point.translate(dx, dy);
-  };
-	input2.dragFinish = function(dropped_on, x, y, event) {
-	  connections.pop().line.remove();
-	  drag_point.hide();
-    if (dropped_on&&dropped_on.raphael){
-      connections.push(paper.connection(input2, dropped_on, "#000"));
-    }
-  };
-	//$(input2.node).bind('click', function(e) { alert("input2 clicked!"); });
-	input2.name = "input2";
-	input2.node.name = "input2.node";
 	
 	output1.draggable();
 	output1.dragStart = function(x, y, start_event, event) {
@@ -220,5 +224,7 @@ function new_behavior(shape, color, inputs, outputs, output_equations){
   var behavior = new Object;
   behavior.shape = shape;
   behavior.color = color;
+  behavior.inputs = inputs;
+  behavior.outputs = outputs;
   return behavior;
 }
